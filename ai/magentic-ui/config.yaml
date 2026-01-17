@@ -1,0 +1,13 @@
+model_config: &client
+  provider: OpenAIChatCompletionClient
+  config:
+    model: gpt-4o-mini-2024-07-18
+    api_key: sk-nW5R9822vMZtyzwn2cD854A94cCd419DcBc738dEaD754927d
+    base_url: https://aihubmix.com/v1  
+  max_retries: 5
+
+orchestrator_client: *client
+coder_client: *client
+web_surfer_client: *client
+file_surfer_client: *client
+action_guard_client: *client
