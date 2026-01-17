@@ -46,3 +46,4 @@ docker-compose-windows-x86_64
 docker-compose-linux-aarch64
 docker-compose-linux-armv7
 *.dmg
+docker/docker-compose/ruoyi
