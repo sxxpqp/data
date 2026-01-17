@@ -1,0 +1,4 @@
+
+icacls "D:\Program Files\Microsoft VS Code\keyfile\DDDong.key"  查看权限
+icacls "D:\Program Files\Microsoft VS Code\keyfile\DDDong.key" /inheritance:r 删除权限
+icacls "D:\Program Files\Microsoft VS Code\keyfile\DDDong.key" /grant:r DDDong:(R) 

@@ -1,0 +1,4 @@
+Host remote_host
+    HostName remote_host
+    User user
+    IdentityFile ~/.ssh/id_rsa

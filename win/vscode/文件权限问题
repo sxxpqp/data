@@ -1,0 +1,18 @@
+1. 使用 icacls 重置权限
+运行以下命令，强制重置文件的权限：
+cmd
+复制代码
+icacls "E:\WSL\ext4.vhdx" /reset
+/reset：重置文件的权限为默认权限。
+2. 设置当前用户的完全控制权限
+重置后，重新授予当前用户完全控制权限：
+
+cmd
+复制代码
+icacls "E:\WSL\ext4.vhdx" /grant "%USERNAME%":F
+%USERNAME%：自动替换为当前登录的用户名。
+:F：表示完全控制。
+
+
+ssh 下载
+https://github.com/PowerShell/Win32-OpenSSH/releases
