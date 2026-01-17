@@ -1,0 +1,3 @@
+Invoke-WebRequest -Uri https://aka.ms/wslubuntu2004 -OutFile Ubuntu.appx -UseBasicParsing
+curl.exe -L -o ubuntu-2004.appx https://aka.ms/wslubuntu2004
+Add-AppxPackage .\Ubuntu.appx

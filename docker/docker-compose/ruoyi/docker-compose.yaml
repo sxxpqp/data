@@ -1,0 +1,71 @@
+version: "3.7"
+services:
+  mysql:
+    # image: docker.io/bitnami/mysql:8.2
+    image: docker.io/bitnami/mysql:5.7
+    container_name: mysql
+    restart: always
+    hostname: mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - mysql
+    volumes:
+      - mysql_data:/bitnami/mysql/data
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ry-vue
+    # network_mode: host
+    # 健康检查 端口号要和上面的一致
+    healthcheck:
+      test: ['CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh']
+      interval: 15s
+      timeout: 5s
+      retries: 6
+  redis:
+    image: docker.io/bitnami/redis:7.2
+    restart: always
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - mysql
+    environment:
+      # - REDIS_PASSWORD=root
+      # ALLOW_EMPTY_PASSWORD is recommended only for development.
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    # network_mode: host
+    volumes:
+      - 'redis_data:/bitnami/redis/data'
+  ruoyi-admin:
+  # 通过build生成镜像
+    build: ./
+    # image: registry.cn-hangzhou.aliyuncs.com/sxxpqp/ruoyi-admin:v2
+    # network_mode: host
+    container_name: ruoyi-admin
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - mysql
+  ruoyi-ui:
+    build: ./ruoyi-ui
+    # image: registry.cn-hangzhou.aliyuncs.com/sxxpqp/ruoyi-ui:v1
+    # network_mode: host
+    container_name: ruoyi-ui
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - mysql      
+volumes:
+  redis_data:
+    driver: local
+  mysql_data: {
+    driver: local
+  }
+networks:
+  mysql:
+    driver: bridge
+    

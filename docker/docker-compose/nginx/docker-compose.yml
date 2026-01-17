@@ -1,0 +1,18 @@
+version: '3.8'  # 使用较新的版本格式
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - wp-network  # 使用已存在的wp-network
+
+networks:
+  wp-network:
+    external: true  # 表示使用外部网络
+
+
+    
