@@ -48,3 +48,5 @@ docker-compose-linux-armv7
 *.dmg
 docker/docker-compose/ruoyi
 runc.amd64
+kubectl
+envsubst
