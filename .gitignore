@@ -50,3 +50,4 @@ docker/docker-compose/ruoyi
 runc.amd64
 kubectl
 envsubst
+snapshot.db

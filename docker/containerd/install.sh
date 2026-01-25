@@ -1,3 +1,6 @@
+#/bin/bash
+set -e
+echo "开始安装 containerd ..."
 # 下载所需应用包
 
 wget https://chfs.sxxpqp.top:8443/chfs/shared/docker/containerd/cri-containerd-cni-1.7.18-linux-amd64.tar.gz
@@ -93,3 +96,6 @@ wget https://chfs.sxxpqp.top:8443/chfs/shared/docker/containerd/runc.amd64
 chmod +x runc.amd64
 # 覆盖 mv
 mv -f runc.amd64 /usr/local/sbin/runc  
+systemctl restart containerd.service
+systemctl status containerd.service
+echo "containerd 安装完成"
