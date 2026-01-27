@@ -111,7 +111,7 @@ DEFAULT_CHANNEL_VALUE="stable"
 if [ -z "$CHANNEL" ]; then
 	CHANNEL=$DEFAULT_CHANNEL_VALUE
 fi
-
+# DOWNLOAD_URL="https://chfs.sxxpqp.top:8443/chfs/shared/docker"
 DEFAULT_DOWNLOAD_URL="https://download.docker.com"
 if [ -z "$DOWNLOAD_URL" ]; then
 	DOWNLOAD_URL=$DEFAULT_DOWNLOAD_URL
