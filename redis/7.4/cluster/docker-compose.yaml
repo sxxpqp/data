@@ -1,0 +1,22 @@
+# /opt/redis-cluster/docker-compose.yml
+version: '3.8'
+
+services:
+  redis-node:
+    image: redis:7.4
+    container_name: redis-node
+    restart: always
+    # 挂载配置文件和数据目录
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+      - ./data:/data
+    # 映射端口：6379是服务端口，16379是集群总线端口（必须开放）
+    ports:
+      - "6379:6379"
+      - "16379:16379"
+    # 使用环境变量传入当前机器的物理IP
+    command: >
+      redis-server /usr/local/etc/redis/redis.conf
+      --cluster-announce-ip ${HOST_IP}
+      --cluster-announce-port 6379
+      --cluster-announce-bus-port 16379
