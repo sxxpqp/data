@@ -1,0 +1,54 @@
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: Xl123456..
+      MYSQL_DATABASE: canal_manager
+    ports:
+      - "3306:3306"
+    #gtid raw模式下需要配置以下参数
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=ROW --gtid-mode=ON --enforce-gtid-consistency=TRUE --log-slave-updates=TRUE --binlog-row-image=FULL 
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - canal-net
+  # 1. 部署 Canal Admin (后台管理)
+  canal-admin:
+    image: canal/canal-admin:latest
+    container_name: canal-admin
+    ports:
+      - "8089:8089"
+    environment:
+      - server.port=8089
+      - spring.datasource.password=Xl123456..
+      - spring.datasource.username=root
+      - spring.datasource.database=canal_manager
+      - spring.datasource.address=172.16.0.28:3306
+      - canal.adminPasswd=admin
+    networks:
+      - canal-net
+  # 2. 部署 Canal Server (数据同步)
+  canal-server:
+    image: canal/canal-server:latest
+    container_name: canal-server
+    ports:
+      - "11110:11110"
+      - "11111:11111"
+    environment:
+      - canal.admin.manager=canal-admin:8089 # 指向admin
+      - canal.admin.passwd=4ACFE3202A5FF5CF467898FC58AAB1D615029441
+      - canal.admin.register.name=canal-server-1
+    volumes:
+      - ./canal:/canal
+      - ./data://home/admin/canal-server/store #不知道需要持久化吗 
+    depends_on:
+      - canal-admin
+    networks:
+      - canal-net
+volumes:
+  mysql-data:
+networks:
+  canal-net:
+    driver: bridge
