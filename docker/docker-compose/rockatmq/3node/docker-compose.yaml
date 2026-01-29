@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  namesrv1:
+    image: apache/rocketmq:5.1.0
+    container_name: rmqns1
+    ports:
+      - "9876:9876"  # NameServer 端口
+      - "9877:9877"  # Controller 端口
+    volumes:
+      - ./namesrv.conf:/home/admin/namesrv.conf
+    command: sh mqnamesrv -c /home/admin/namesrv.conf
+
+  namesrv2:
+    image: apache/rocketmq:5.1.0
+    container_name: rmqns2
+    ports:
+      - "9886:9876"  # 避免与 9876 冲突
+      - "9887:9877"  # 避免与 9877 冲突
+    volumes:
+      - ./namesrv1.conf:/home/admin/namesrv.conf
+    command: sh mqnamesrv -c /home/admin/namesrv.conf
+
+  broker-a:
+    image: apache/rocketmq:5.1.0
+    container_name: rmqbroker-a
+    ports:
+      - 10909:10909
+      - 10911:10911
+    volumes:
+      - ./brokera.conf:/home/rocketmq/conf/broker.conf
+    command: sh mqbroker -c /home/rocketmq/conf/broker.conf
+    depends_on:
+      - namesrv1
+      - namesrv2
+
+  broker-a-s:
+    image: apache/rocketmq:5.1.0
+    container_name: rmqbroker-a-s
+    volumes:
+      - ./brokeras.conf:/home/rocketmq/conf/broker.conf
+    command: sh mqbroker -c /home/rocketmq/conf/broker.conf
+    depends_on:
+      - namesrv1
+  broker-b:
+    image: apache/rocketmq:5.1.0
+    container_name: rmqbroker-b
+    volumes:
+      - ./brokerb.conf:/home/rocketmq/conf/broker.conf
+    command: sh mqbroker -c /home/rocketmq/conf/broker.conf
+    depends_on:
+      - namesrv1
+      - namesrv2
+
+  broker-b-s:
+    image: apache/rocketmq:5.1.0
+    container_name: rmqbroker-b-s
+    volumes:
+      - ./brokerbs.conf:/home/rocketmq/conf/brokerb.conf
+    command: sh mqbroker -c /home/rocketmq/conf/brokerb.conf
+    depends_on:
+      - namesrv1
+      - namesrv2    
+
+  # Broker-B 和 Broker-B-S 的配置依此类推，注意修改端口映射避免冲突...
+
+  dashboard:
+    image: apacherocketmq/rocketmq-dashboard:latest
+    container_name: rmqdashboard
+    ports:
+      - 8082:8082
+    environment:
+      - JAVA_OPTS=-Drocketmq.namesrv.addr=namesrv1:9876;namesrv2:9886
