@@ -57,3 +57,12 @@ longhornctl-linux-amd64
 update-center.json
 *.exe
 
+# 子 git 仓库
+k8s/jenkins/java11-demo/
+k8s/jenkins/vue3-demo/
+
+# 其他忽略
+docker/containerd/*
+win/securecrt/
+win/vscode/
+k8s/prometheus/*prometheusalert.md
