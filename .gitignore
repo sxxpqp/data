@@ -52,3 +52,8 @@ kubectl
 envsubst
 snapshot.db
 tkn_0.43.0_Linux_x86_64.tar.gz
+# 大文件和二进制
+longhornctl-linux-amd64
+update-center.json
+*.exe
+

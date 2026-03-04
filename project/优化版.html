@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄影工作室 · 优化版 (Docker就绪)</title>
+    <style>
+        /* ----- 全局重置 & 新风格 (保留原样式，增加表格居中对齐) ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+            background: #f0f3f8;
+            min-height: 100vh;
+            padding: 20px;
+            color: #0b1c33;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(2px);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        .header {
+            background: #ffffffdd;
+            backdrop-filter: blur(4px);
+            padding: 24px 32px;
+            border-bottom: 1px solid #e9eef3;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(145deg, #163A5F, #2B4F77);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .sync-status {
+            background: #f1f5f9cc;
+            backdrop-filter: blur(4px);
+            padding: 8px 22px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: 1px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+        .app-main {
+            display: flex;
+            min-height: 700px;
+        }
+        .sidebar {
+            width: 280px;
+            background: #f8fafef0;
+            backdrop-filter: blur(4px);
+            padding: 32px 16px;
+            border-right: 1px solid #e0e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            border-radius: 18px;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #334155;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            text-align: left;
+            width: 100%;
+        }
+        .nav-item:hover {
+            background: #e7edf6;
+            color: #1e3c5a;
+            transform: translateX(4px);
+        }
+        .nav-item.active {
+            background: #ffffff;
+            box-shadow: 0 8px 18px -8px rgba(37,99,235,0.25);
+            color: #2563eb;
+            font-weight: 600;
+            border-left: 4px solid #2563eb;
+        }
+        .nav-item .emoji-icon {
+            font-size: 1.5rem;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.05));
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px dashed #cdd9e9;
+        }
+        .service-type-btn {
+            background: #edf3fc;
+            border: 1px solid #cddef5;
+            border-radius: 40px;
+            padding: 14px 18px;
+            width: 100%;
+            font-weight: 500;
+            color: #1f3a6b;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: 0.15s;
+            cursor: pointer;
+        }
+        .service-type-btn:hover {
+            background: #dde9fc;
+            border-color: #90b4dc;
+        }
+        .content-area {
+            flex: 1;
+            background: #ffffff;
+            padding: 28px 32px;
+            overflow-y: auto;
+            max-height: 900px;
+        }
+        .page-container {
+            display: none;
+            animation: fadeIn 0.25s ease;
+        }
+        .page-container.active-page {
+            display: block;
+        }
+        @keyframes fadeIn { from { opacity:0.3; } to { opacity:1; } }
+        .form-container, .batch-form-container, .recharge-section,
+        .filter-section, .customer-details {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 26px 28px;
+            margin-bottom: 28px;
+            border: 1px solid #eef3f9;
+            box-shadow: 0 8px 18px -10px rgba(0, 20, 40, 0.08);
+        }
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #183b56;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+        .form-row { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .form-group { flex: 1 1 260px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; color: #475569; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 12px 16px; border: 1px solid #d4e0ec; border-radius: 16px;
+            font-size: 0.95rem; background: #ffffff; transition: 0.15s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,0.15); outline: none;
+        }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
+        .btn {
+            padding: 12px 30px; border: none; border-radius: 40px; font-size: 0.95rem;
+            font-weight: 500; transition: 0.15s; cursor: pointer; background: #ffffff;
+            color: #1e293b; border: 1px solid #d0dfef; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .btn:hover { background: #f1f7fd; border-color: #9bb4d0; transform: translateY(-1px); }
+        .btn-primary { background: #2563eb; color: white; border: 1px solid #2563eb; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success { background: #10b981; color: white; border: 1px solid #059669; }
+        .btn-warning { background: #f59e0b; color: white; border: 1px solid #d97706; }
+        .btn-danger { background: #ef4444; color: white; border: 1px solid #dc2626; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-sm { padding: 6px 16px; font-size: 0.85rem; }
+
+        .table-container { overflow-x: auto; border-radius: 20px; border: 1px solid #e7edf6; background: white; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        /* 所有表格内容水平居中 */
+        th, td { text-align: center; vertical-align: middle; }
+        th { 
+            background: #f8fbfe; 
+            color: #1e293b; 
+            font-weight: 600; 
+            padding: 12px 12px; 
+            border-bottom: 1px solid #dce8f2; 
+        }
+        td { 
+            padding: 3px 3px; 
+            border-bottom: 1px solid #ecf3fa; 
+            color: #25435f; 
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #f6faff; }
+
+        /* 统一按钮/状态标签的基本尺寸 (原样式已一致，保留) */
+        .action-btn, .status-paid, .status-unpaid, .invoice-status-yes, .invoice-status-no {
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: none;
+            display: inline-block;
+            cursor: pointer;
+            transition: 0.1s;
+            line-height: 1.4;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .action-btn:hover, .status-paid:hover, .status-unpaid:hover, .invoice-status-yes:hover, .invoice-status-no:hover {
+            filter: brightness(0.95);
+            transform: translateY(-1px);
+        }
+        .edit-btn { background: #dbeafe; color: #1e40af; }
+        .delete-btn { background: #fee2e2; color: #b91c1c; }
+        .status-paid { background: #d1fae5; color: #059669; }
+        .status-unpaid { background: #fee2e2; color: #b91c1c; }
+        /* 开票状态统一为付款状态色系 (已修改) */
+        .invoice-status-yes { background: #d1fae5; color: #059669; }  /* 同 status-paid */
+        .invoice-status-no { background: #fee2e2; color: #b91c1c; }   /* 同 status-unpaid */
+
+        .stats { display: flex; gap: 24px; padding: 10px 0 20px; flex-wrap: wrap; }
+        .stat-item { background: #f7faff; border-radius: 32px; padding: 24px 32px; text-align: center; flex: 1 1 200px; border: 1px solid #e2ebf5; }
+        .stat-number { font-size: 2.2rem; font-weight: 700; color: #2563eb; }
+
+        .filter-row { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end; }
+        .filter-group { min-width: 160px; flex: 1 1 auto; }
+
+        .customer-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 20px; }
+        .info-item { background: #f9fcff; padding: 18px; border-radius: 18px; border: 1px solid #e2edf7; }
+        .edit-info-input { width: 100%; padding: 10px 14px; border-radius: 14px; border: 1px solid #cfddee; margin-top: 8px; }
+
+        .customer-select-dropdown, .recharge-dropdown {
+            position: absolute; background: white; border: 1px solid #cfddee; border-radius: 18px;
+            margin-top: 4px; max-height: 260px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        }
+        .customer-select-option { padding: 12px 18px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+        .customer-select-option:hover { background: #eef2ff; }
+        .customer-select-option.selected { background: #dbeafe; }
+
+        .modal { background-color: rgba(20, 30, 45, 0.6); backdrop-filter: blur(5px); position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; display: none; }
+        .modal-content { background: white; border-radius: 32px; padding: 30px; max-width: 520px; margin: 5% auto; box-shadow: 0 30px 60px rgba(0,0,0,0.4); position: relative; }
+        .close { position: absolute; right: 20px; top: 15px; font-size: 28px; cursor: pointer; color: #94a3b8; }
+
+        .recharge-operation-area { display: flex; flex-wrap: wrap; gap: 24px; }
+        .recharge-card { flex: 1 1 280px; background: #ffffff; border: 1px solid #e2edf7; border-radius: 26px; padding: 24px; }
+
+        .transaction-tabs { display: flex; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px; gap: 6px; }
+        .transaction-tab { padding: 12px 28px; background: transparent; border: none; font-weight: 500; border-radius: 40px 40px 0 0; cursor: pointer; }
+        .transaction-tab.active { background: #eef2ff; color: #2563eb; font-weight: 600; }
+
+        .service-type-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; background: #fafdff; padding: 18px 16px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #e2edf7; }
+        .service-type-input-container { display: flex; flex: 3 1 300px; gap: 8px; align-items: center; }
+        .service-type-select, .service-type-input { flex: 1; padding: 10px 14px; border-radius: 14px; border: 1px solid #cfddee; }
+        .quantity, .unit-price, .amount { flex: 1 1 110px; padding: 10px 14px; border-radius: 14px; border: 1px solid #cfddee; }
+        .amount { background-color: #f1f5f9; border: 1px solid #e2e8f0; }
+        .remove-btn { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 30px; padding: 10px 20px; font-weight: 500; cursor: pointer; }
+        .add-row-btn { background: white; border: 2px dashed #94a3b8; padding: 14px 24px; border-radius: 40px; font-weight: 600; color: #334155; margin-bottom: 15px; width: 100%; }
+        .add-row-btn:hover { background: #f1f5f9; border-color: #2563eb; }
+        .toggle-input-btn, .add-service-btn { background: #ffffff; border: 1px solid #cfddee; border-radius: 30px; padding: 8px 16px; font-size: 0.9rem; cursor: pointer; }
+        .data-import-export { display: flex; gap: 15px; flex-wrap: wrap; margin: 25px 0 15px; }
+
+        .recharge-stats {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+        .recharge-stat-item {
+            background: #f7faff;
+            border-radius: 32px;
+            padding: 20px 32px;
+            text-align: center;
+            flex: 1;
+            border: 1px solid #e2ebf5;
+        }
+        .recharge-stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        .recharge-stat-label {
+            color: #475569;
+            margin-top: 4px;
+        }
+        @media (max-width: 800px) {
+            .app-main { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e0e8f0; padding: 16px; flex-direction: row; flex-wrap: wrap; }
+            .nav-item { width: auto; flex: 1 0 auto; }
+            .sidebar-footer { margin-top: 0; padding-top: 0; border-top: none; width: 100%; }
+        }
+        /* 新建客户微型表单 */
+        .new-customer-mini {
+            background: #f0f7ff;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 10px;
+            border: 1px solid #bdd6f0;
+        }
+        .new-customer-mini .form-row {
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📸 MT摄影工作室</h1>
+                <p></p>
+            </div>
+            <div class="sync-status" id="syncStatus">✅ 本地运行</div>
+        </div>
+
+        <div class="app-main">
+            <aside class="sidebar">
+                <div class="nav-item" data-page="customers">
+                    <span class="emoji-icon">👥</span> 客户管理
+                </div>
+                <div class="nav-item active" data-page="records">
+                    <span class="emoji-icon">📋</span> 业务记录
+                </div>
+                <div class="nav-item" data-page="recharge">
+                    <span class="emoji-icon">⚡</span> 客户充值
+                </div>
+                <div class="sidebar-footer">
+                    <div class="service-type-btn" id="openServiceTypeBtn">
+                        <span>⚙️</span> 服务类型管理
+                    </div>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <!-- 客户管理页面 -->
+                <div id="customers" class="page-container">
+                    <div class="form-container">
+                        <h3>添加/编辑客户信息</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>客户姓名</label><input type="text" id="customerName" placeholder="请输入客户姓名" required></div>
+                            <div class="form-group"><label>联系电话</label><input type="tel" id="customerPhone" placeholder="请输入联系电话"></div>
+                            <div class="form-group"><label>邮箱地址</label><input type="email" id="customerEmail" placeholder="请输入邮箱地址"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>地址</label><input type="text" id="customerAddress" placeholder="请输入地址"></div>
+                            <div class="form-group"><label>客户类型</label>
+                                <select id="customerType"><option value="个人">个人</option><option value="企业">企业</option><option value="机构">机构</option></select>
+                            </div>
+                            <div class="form-group"><label>备注</label><textarea id="customerNotes" rows="2" placeholder="请输入备注信息"></textarea></div>
+                        </div>
+                        <input type="hidden" id="customerId">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" id="saveCustomerBtn">保存客户</button>
+                            <button class="btn btn-secondary" id="clearCustomerBtn">清空表单</button>
+                        </div>
+                    </div>
+                    <div class="data-import-export">
+                        <button class="btn btn-secondary" id="exportDataBtn">导出数据</button>
+                        <button class="btn btn-secondary" id="importDataBtn">导入数据</button>
+                        <input type="file" id="fileInput" accept=".json" style="display:none;">
+                        <button class="btn btn-secondary" onclick="alert('数据已保存在浏览器本地存储中')">存储位置</button>
+                        <button class="btn btn-secondary" id="manualSaveBtn">手动保存</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="customersTable">
+                            <thead><tr><th>操作</th><th>客户姓名</th><th>联系电话</th><th>邮箱</th><th>类型</th><th>地址</th><th>备注</th><th>余额</th></tr></thead>
+                            <tbody id="customersBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 业务记录页面 -->
+                <div id="records" class="page-container active-page">
+                    <div class="filter-section">
+                        <div class="filter-row">
+                            <div class="filter-group"><label>筛选客户:</label><select id="customerFilter" onchange="filterRecords()"><option value="">显示所有客户</option></select></div>
+                            <div class="filter-group"><label>搜索客户:</label><input type="text" id="customerFilterSearch" oninput="filterCustomersBySearch()"></div>
+                            <div class="filter-group"><label>开始日期:</label><input type="date" id="startDate" onchange="filterRecords()"></div>
+                            <div class="filter-group"><label>结束日期:</label><input type="date" id="endDate" onchange="filterRecords()"></div>
+                            <div class="filter-group"><label>付款:</label><select id="paymentFilter" onchange="filterRecords()"><option value="">全部</option><option value="unpaid">未付款</option><option value="paid">已付款</option></select></div>
+                            <div class="filter-group"><label>开票:</label><select id="invoiceFilter" onchange="filterRecords()"><option value="">全部</option><option value="no">未开票</option><option value="yes">已开票</option></select></div>
+                            <!-- 整合了重置按钮 + 新增的快速筛选按钮：1月、3月、半年、一年 -->
+                            <div class="filter-group" style="flex: 0 1 auto; min-width: min-content; display: flex; gap: 8px; align-items: center; margin-top:20px;">
+                                <button class="btn btn-secondary" onclick="resetFilter()">重置筛选</button>
+                                <button class="btn btn-secondary" onclick="quickFilter(1)">1月</button>
+                                <button class="btn btn-secondary" onclick="quickFilter(3)">3月</button>
+                                <button class="btn btn-secondary" onclick="quickFilter(6)">半年</button>
+                                <button class="btn btn-secondary" onclick="quickFilter(12)">一年</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 客户资料展示区 -->
+                    <div id="selectedCustomerInfo" class="customer-details" style="display:none;">
+                        <h3>客户详细资料</h3>
+                        <div class="customer-info">
+                            <div class="info-item"><div class="info-label">客户姓名</div><div id="displayCustomerName" class="info-value">-</div><input type="text" id="editCustomerName" class="edit-info-input" style="display:none;"></div>
+                            <div class="info-item"><div class="info-label">联系电话</div><div id="displayCustomerPhone" class="info-value">-</div><input type="tel" id="editCustomerPhone" class="edit-info-input" style="display:none;"></div>
+                            <div class="info-item"><div class="info-label">邮箱地址</div><div id="displayCustomerEmail" class="info-value">-</div><input type="email" id="editCustomerEmail" class="edit-info-input" style="display:none;"></div>
+                            <div class="info-item"><div class="info-label">客户类型</div><div id="displayCustomerType" class="info-value">-</div><select id="editCustomerType" class="edit-info-input" style="display:none;"><option value="个人">个人</option><option value="企业">企业</option><option value="机构">机构</option></select></div>
+                            <div class="info-item"><div class="info-label">地址</div><div id="displayCustomerAddress" class="info-value">-</div><input type="text" id="editCustomerAddress" class="edit-info-input" style="display:none;"></div>
+                            <div class="info-item"><div class="info-label">备注</div><div id="displayCustomerNotes" class="info-value">-</div><textarea id="editCustomerNotes" class="edit-info-input" style="display:none;"></textarea></div>
+                        </div>
+                        <div class="customer-details-buttons" id="customerEditButtons" style="display:none;">
+                            <button class="btn btn-primary" onclick="saveEditedCustomer()">保存</button>
+                            <button class="btn btn-secondary" onclick="cancelEditCustomer()">取消</button>
+                        </div>
+                        <div class="customer-details-buttons" id="customerViewButtons">
+                            <button class="btn btn-secondary" onclick="editCustomerDetails()">编辑客户信息</button>
+                        </div>
+                    </div>
+
+                    <div class="batch-form-container">
+                        <h3>批量添加业务记录</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>拍摄日期</label><input type="date" id="batchDate" required></div>
+                            <div class="form-group"><label>选择客户</label>
+                                <div style="position:relative;">
+                                    <input type="text" id="batchCustomerSelect" placeholder="输入客户名..." autocomplete="off">
+                                    <div id="customerSelectDropdown" class="customer-select-dropdown"></div>
+                                </div>
+                                <input type="hidden" id="batchCustomerId">
+                            </div>
+                        </div>
+                        <!-- 新建客户微型表单（初始隐藏） -->
+                        <div id="newCustomerMiniForm" class="new-customer-mini" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group"><label>姓名</label><input type="text" id="newMiniName" placeholder="姓名" required></div>
+                                <div class="form-group"><label>电话</label><input type="tel" id="newMiniPhone" placeholder="电话"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label>邮箱</label><input type="email" id="newMiniEmail" placeholder="邮箱"></div>
+                                <div class="form-group"><label>类型</label><select id="newMiniType"><option value="个人">个人</option><option value="企业">企业</option><option value="机构">机构</option></select></div>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-primary" id="confirmNewMiniBtn">确认创建</button>
+                                <button class="btn btn-secondary" id="cancelNewMiniBtn">取消</button>
+                            </div>
+                        </div>
+
+                        <div id="serviceTypeRows">
+                            <div class="service-type-row">
+                                <div class="service-type-input-container">
+                                    <select class="service-type-select" onchange="setDefaultPrice(this)"><option value="">请选择服务类型</option></select>
+                                    <input type="text" class="service-type-input" placeholder="自定义..." oninput="setCustomPrice(this)" style="display:none;">
+                                    <button class="toggle-input-btn" type="button" onclick="toggleServiceTypeInput(this)">✏️</button>
+                                    <button class="add-service-btn" type="button" onclick="openServiceTypeModal()">+</button>
+                                </div>
+                                <input type="number" class="quantity" placeholder="数量" min="1" oninput="calculateAmount(this)">
+                                <input type="number" class="unit-price" placeholder="单价" min="0" step="0.01" oninput="calculateAmount(this)">
+                                <input type="number" class="amount" placeholder="金额" readonly style="background:#f8f9fa;">
+                                <button class="remove-btn" type="button" onclick="removeServiceTypeRow(this)">删除</button>
+                            </div>
+                        </div>
+                        <button class="add-row-btn" onclick="addServiceTypeRow()">+ 新增一行</button>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" id="addBatchRecordsBtn">批量添加记录</button>
+                            <button class="btn btn-secondary" onclick="clearBatchForm()">清空表单</button>
+                        </div>
+                    </div>
+
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalAmount">0.00</div>
+                            <div>合计金额 (元)</div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="recordsTable">
+                            <thead><tr><th>操作</th><th>客户名称</th><th>拍摄日期</th><th>服务类型</th><th>数量</th><th>单价</th><th>金额</th><th>付款状态</th><th>开票状态</th></tr></thead>
+                            <tbody id="recordsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 客户充值页面 -->
+                <div id="recharge" class="page-container">
+                    <div class="recharge-section">
+                        <h3>客户充值与消费</h3>
+                        <div class="recharge-operation-area">
+                            <div class="recharge-card">
+                                <h4>选择客户</h4>
+                                <div class="form-group">
+                                    <label>请选择客户</label>
+                                    <div style="position:relative;">
+                                        <input type="text" id="rechargeCustomerSelect" placeholder="输入客户名..." autocomplete="off">
+                                        <div id="rechargeCustomerSelectDropdown" class="customer-select-dropdown"></div>
+                                    </div>
+                                    <input type="hidden" id="rechargeCustomerId">
+                                </div>
+                            </div>
+                            <div class="recharge-card">
+                                <h4>充值操作</h4>
+                                <input type="number" id="transactionAmount" min="0" step="0.01" placeholder="充值金额" style="width:100%; padding:12px; border-radius:16px; border:1px solid #d4e0ec;">
+                                <textarea id="transactionNotes" rows="2" placeholder="备注" style="width:100%; margin-top:12px; padding:12px; border-radius:16px;"></textarea>
+                                <div style="margin-top:16px;">
+                                    <button class="btn btn-success" id="processRechargeBtn">确认充值</button>
+                                    <button class="btn btn-secondary" onclick="clearRechargeForm()">清空</button>
+                                </div>
+                            </div>
+                            <div class="recharge-card" id="balanceDisplayCard" style="display:none;">
+                                <h4>当前余额</h4>
+                                <div class="balance-amount" id="currentBalance" style="font-size:2.5rem; font-weight:700; color:#2563eb;">0.00</div>
+                                <div id="balanceEditContainer" style="display:none; margin-top:10px;">
+                                    <input type="number" id="balanceEditInput" step="0.01" placeholder="新余额" style="width:100%; padding:8px;">
+                                    <button class="btn btn-primary" onclick="saveBalanceChange()">保存</button>
+                                    <button class="btn btn-secondary" onclick="cancelBalanceChange()">取消</button>
+                                </div>
+                                <button class="btn btn-secondary" onclick="showBalanceEdit()" style="margin-top:10px;">修改余额</button>
+                            </div>
+                        </div>
+
+                        <div id="rechargeCustomerDetails" class="customer-details" style="display:none;">
+                            <h3>客户详细资料</h3>
+                            <div class="customer-info">
+                                <div class="info-item"><div class="info-label">姓名</div><div id="rechargeDisplayCustomerName">-</div></div>
+                                <div class="info-item"><div class="info-label">电话</div><div id="rechargeDisplayCustomerPhone">-</div></div>
+                                <div class="info-item"><div class="info-label">邮箱</div><div id="rechargeDisplayCustomerEmail">-</div></div>
+                                <div class="info-item"><div class="info-label">类型</div><div id="rechargeDisplayCustomerType">-</div></div>
+                                <div class="info-item"><div class="info-label">地址</div><div id="rechargeDisplayCustomerAddress">-</div></div>
+                                <div class="info-item"><div class="info-label">备注</div><div id="rechargeDisplayCustomerNotes">-</div></div>
+                            </div>
+                        </div>
+
+                        <div class="batch-form-container" id="rechargeSpendForm" style="display:none;">
+                            <h3>余额消费</h3>
+                            <div class="form-row"><div class="form-group"><label>消费日期</label><input type="date" id="rechargeSpendDate"></div></div>
+                            <div id="rechargeServiceTypeRows">
+                                <div class="service-type-row">
+                                    <div class="service-type-input-container">
+                                        <select class="service-type-select" onchange="setDefaultPrice(this)"><option value="">请选择服务类型</option></select>
+                                        <input type="text" class="service-type-input" style="display:none;" oninput="setCustomPrice(this)">
+                                        <button class="toggle-input-btn" onclick="toggleServiceTypeInput(this)">✏️</button>
+                                        <button class="add-service-btn" onclick="openServiceTypeModal()">+</button>
+                                    </div>
+                                    <input type="number" class="quantity" placeholder="数量" min="1" oninput="calculateAmount(this)">
+                                    <input type="number" class="unit-price" placeholder="单价" min="0" step="0.01" oninput="calculateAmount(this)">
+                                    <input type="number" class="amount" placeholder="金额" readonly>
+                                    <button class="remove-btn" onclick="removeServiceTypeRow(this, 'recharge')">删除</button>
+                                </div>
+                            </div>
+                            <button class="add-row-btn" onclick="addRechargeServiceTypeRow()">+ 新增一行</button>
+                            <div class="btn-group">
+                                <button class="btn btn-warning" id="processSpendBtn">确认消费</button>
+                                <button class="btn btn-secondary" onclick="clearRechargeSpendForm()">清空表单</button>
+                            </div>
+                        </div>
+
+                        <div class="recharge-stats" id="rechargeStats" style="display: none;">
+                            <div class="recharge-stat-item">
+                                <div class="recharge-stat-number" id="totalSpentDisplay">0.00</div>
+                                <div class="recharge-stat-label">已消费 (元)</div>
+                            </div>
+                            <div class="recharge-stat-item">
+                                <div class="recharge-stat-number" id="currentBalanceDisplay">0.00</div>
+                                <div class="recharge-stat-label">当前余额 (元)</div>
+                            </div>
+                        </div>
+
+                        <div class="transaction-history">
+                            <div class="transaction-tabs">
+                                <button class="transaction-tab active" data-transaction-tab="spend">消费记录</button>
+                                <button class="transaction-tab" data-transaction-tab="recharge">充值记录</button>
+                                <button class="transaction-tab" data-transaction-tab="all">全部记录</button>
+                            </div>
+                            <div id="spendHistory" class="transaction-content active">
+                                <table><thead><tr><th>客户名称</th><th>日期</th><th>服务类型</th><th>数量</th><th>单价</th><th>消费金额</th><th>余额</th><th>操作</th></tr></thead><tbody id="spendHistoryBody"></tbody></table>
+                            </div>
+                            <div id="rechargeHistory" class="transaction-content">
+                                <table><thead><tr><th>充值日期</th><th>充值金额</th><th>余额</th><th>备注</th><th>操作</th></tr></thead><tbody id="rechargeHistoryBody"></tbody></table>
+                            </div>
+                            <div id="allHistory" class="transaction-content">
+                                <table><thead><tr><th>日期</th><th>类型</th><th>金额</th><th>余额</th><th>备注</th><th>操作</th></tr></thead><tbody id="allHistoryBody"></tbody></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- 服务类型管理模态框 -->
+        <div id="serviceTypeModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeServiceTypeModal">&times;</span>
+                <h3>管理服务类型</h3>
+                <div class="add-service-form">
+                    <input type="text" id="newServiceNameModal" placeholder="输入新服务类型名称">
+                    <input type="number" id="newServicePriceModal" placeholder="默认单价 (元)" min="0" step="0.01">
+                    <button class="btn btn-primary" id="addServiceTypeBtn">添加服务类型</button>
+                </div>
+                <div class="service-type-list" id="serviceTypeListModal" style="margin-top:20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== 数据定义 ====================
+            let customers = [];
+            let records = [];
+            let serviceTypes = [];
+            let rechargeRecords = [];
+
+            // 当前状态
+            let currentFilterCustomerId = null;
+            let currentPaymentStatus = null;
+            let currentInvoiceStatus = null;
+            let currentStartDate = null;
+            let currentEndDate = null;
+            let currentEditingCustomerId = null;
+            let currentRechargeCustomerId = null;
+
+            // 下拉框辅助
+            let currentSelectResults = [];
+            let currentSelectIndex = -1;
+            let rechargeSearchResults = [];
+            let rechargeSelectedIndex = -1;
+            let pendingNewCustomerName = ''; // 暂存新建客户名
+
+            // ==================== 初始化 ====================
+            function initApp() {
+                loadDataFromStorage();
+                attachEventListeners();
+                switchTab('records');
+                setDefaultDate();
+                updateServiceTypeSelects();
+            }
+
+            function attachEventListeners() {
+                // 导航切换
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', e => {
+                        const page = e.currentTarget.getAttribute('data-page');
+                        if (page) switchTab(page);
+                    });
+                });
+
+                // 交易标签切换
+                document.querySelectorAll('.transaction-tab').forEach(tab => {
+                    tab.addEventListener('click', e => {
+                        const tabName = e.currentTarget.getAttribute('data-transaction-tab');
+                        switchTransactionTab(tabName);
+                    });
+                });
+
+                // 按钮事件
+                document.getElementById('saveCustomerBtn').addEventListener('click', saveCustomer);
+                document.getElementById('clearCustomerBtn').addEventListener('click', clearCustomerForm);
+                document.getElementById('exportDataBtn').addEventListener('click', exportData);
+                document.getElementById('importDataBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+                document.getElementById('fileInput').addEventListener('change', importData);
+                document.getElementById('manualSaveBtn').addEventListener('click', () => saveDataToStorage(true));
+                document.getElementById('addBatchRecordsBtn').addEventListener('click', addBatchRecords);
+                document.getElementById('processRechargeBtn').addEventListener('click', processRecharge);
+                document.getElementById('processSpendBtn').addEventListener('click', processSpendFromBalance);
+                document.getElementById('openServiceTypeBtn').addEventListener('click', openServiceTypeModal);
+                document.getElementById('closeServiceTypeModal').addEventListener('click', closeServiceTypeModal);
+                document.getElementById('addServiceTypeBtn').addEventListener('click', addServiceTypeFromModal);
+                document.getElementById('confirmNewMiniBtn').addEventListener('click', confirmNewCustomerFromMini);
+                document.getElementById('cancelNewMiniBtn').addEventListener('click', cancelNewCustomerMini);
+
+                // ========== 修复1: 业务记录页面 选择客户输入框增加 input 事件 ==========
+                const batchInput = document.getElementById('batchCustomerSelect');
+                batchInput.addEventListener('input', filterCustomersForBatch);   // 新增input监听
+                batchInput.addEventListener('keydown', handleBatchKeydown);
+                batchInput.addEventListener('blur', () => setTimeout(hideSelectDropdown, 200));
+
+                // ========== 修复3: 充值页面 选择客户输入框增加 input 事件 ==========
+                const rechargeInput = document.getElementById('rechargeCustomerSelect');
+                rechargeInput.addEventListener('input', (e) => filterRechargeCustomers(e.target.value));
+                rechargeInput.addEventListener('keydown', handleRechargeKeydown);
+                rechargeInput.addEventListener('blur', () => setTimeout(hideRechargeSelectDropdown, 200));
+
+                // 点击其他地方关闭下拉
+                document.addEventListener('click', e => {
+                    if (!e.target.closest('#batchCustomerSelect') && !e.target.closest('#customerSelectDropdown')) {
+                        hideSelectDropdown();
+                    }
+                    if (!e.target.closest('#rechargeCustomerSelect') && !e.target.closest('#rechargeCustomerSelectDropdown')) {
+                        hideRechargeSelectDropdown();
+                    }
+                });
+            }
+
+            // ==================== 本地存储 ====================
+            function saveDataToStorage(manual = false) {
+                try {
+                    const data = { customers, records, serviceTypes, rechargeRecords };
+                    localStorage.setItem('studioData', JSON.stringify(data));
+                    document.getElementById('syncStatus').innerHTML = '✅ 数据已保存';
+                    setTimeout(() => { document.getElementById('syncStatus').innerHTML = '✅ 本地运行'; }, 1500);
+                } catch (e) {
+                    console.error('保存失败', e);
+                    document.getElementById('syncStatus').innerHTML = '❌ 保存失败';
+                }
+            }
+
+            function loadDataFromStorage() {
+                try {
+                    const saved = localStorage.getItem('studioData');
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        customers = data.customers || [];
+                        records = data.records || [];
+                        serviceTypes = data.serviceTypes || [];
+                        rechargeRecords = data.rechargeRecords || [];
+                    } else {
+                        serviceTypes = [
+                            { name: '证件照', price: 60 },
+                            { name: '全家福', price: 299 },
+                            { name: '婚纱照', price: 1999 }
+                        ];
+                    }
+                    customers.forEach(c => { if (typeof c.balance === 'undefined') c.balance = 0; });
+                    renderAll();
+                    document.getElementById('syncStatus').innerHTML = '✅ 数据加载完成';
+                } catch (e) {
+                    console.error('加载失败', e);
+                    customers = []; records = []; rechargeRecords = [];
+                    serviceTypes = [{ name: '证件照', price: 60 }, { name: '全家福', price: 299 }];
+                    renderAll();
+                }
+            }
+
+            function renderAll() {
+                renderCustomers();
+                renderRecords();
+                renderServiceTypesModal();
+                populateCustomerFilter();
+                updateServiceTypeSelects();
+                setDefaultDate();
+                if (currentRechargeCustomerId) {
+                    selectRechargeCustomer(currentRechargeCustomerId);
+                } else {
+                    updateRechargeCustomerSelect();
+                }
+            }
+
+            // ==================== 切换页面 ====================
+            function switchTab(tabName) {
+                document.querySelectorAll('.page-container').forEach(p => p.classList.remove('active-page'));
+                document.getElementById(tabName).classList.add('active-page');
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-page') === tabName) item.classList.add('active');
+                });
+                if (tabName === 'records') { calculateTotalAmount(); }
+                if (tabName === 'recharge') { 
+                    updateRechargeCustomerSelect(); 
+                    clearRechargeForm(); 
+                    // 确保充值页面默认激活消费记录标签 (虽然HTML已默认，但防止切换)
+                    switchTransactionTab('spend');
+                }
+            }
+
+            function switchTransactionTab(tabName) {
+                document.querySelectorAll('.transaction-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.transaction-content').forEach(c => c.classList.remove('active'));
+                const content = document.getElementById(tabName + 'History');
+                if (content) content.classList.add('active');
+                const tab = document.querySelector(`.transaction-tab[data-transaction-tab="${tabName}"]`);
+                if (tab) tab.classList.add('active');
+                if (currentRechargeCustomerId) loadTransactionHistory(currentRechargeCustomerId, tabName);
+            }
+
+            // ==================== 客户管理 ====================
+            function saveCustomer() {
+                const id = document.getElementById('customerId').value;
+                const name = document.getElementById('customerName').value.trim();
+                const phone = document.getElementById('customerPhone').value.trim();
+                const email = document.getElementById('customerEmail').value.trim();
+                const address = document.getElementById('customerAddress').value.trim();
+                const type = document.getElementById('customerType').value;
+                const notes = document.getElementById('customerNotes').value.trim();
+                if (!name) { alert('请输入客户姓名'); return; }
+                if (id) {
+                    const customer = customers.find(c => c.id === id);
+                    if (customer) {
+                        Object.assign(customer, { name, phone, email, address, type, notes });
+                    }
+                } else {
+                    const newId = generateId();
+                    customers.push({ id: newId, name, phone, email, address, type, notes, balance: 0 });
+                }
+                saveDataToStorage();
+                renderCustomers();
+                populateCustomerFilter();
+                clearCustomerForm();
+                alert('客户已保存');
+            }
+
+            window.editCustomer = function(id) {
+                const c = customers.find(c => c.id === id);
+                if (!c) return;
+                document.getElementById('customerId').value = c.id;
+                document.getElementById('customerName').value = c.name;
+                document.getElementById('customerPhone').value = c.phone || '';
+                document.getElementById('customerEmail').value = c.email || '';
+                document.getElementById('customerAddress').value = c.address || '';
+                document.getElementById('customerType').value = c.type || '个人';
+                document.getElementById('customerNotes').value = c.notes || '';
+                document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+            };
+
+            window.deleteCustomer = function(id) {
+                if (!confirm('确定删除该客户及其所有业务记录？')) return;
+                customers = customers.filter(c => c.id !== id);
+                records = records.filter(r => r.customerId !== id);
+                rechargeRecords = rechargeRecords.filter(r => r.customerId !== id);
+                saveDataToStorage();
+                renderCustomers();
+                renderRecords();
+                populateCustomerFilter();
+            };
+
+            function clearCustomerForm() {
+                document.getElementById('customerId').value = '';
+                document.getElementById('customerName').value = '';
+                document.getElementById('customerPhone').value = '';
+                document.getElementById('customerEmail').value = '';
+                document.getElementById('customerAddress').value = '';
+                document.getElementById('customerType').value = '个人';
+                document.getElementById('customerNotes').value = '';
+            }
+
+            function renderCustomers() {
+                const tbody = document.getElementById('customersBody');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                if (customers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">暂无客户</td></tr>';
+                    return;
+                }
+                customers.forEach(c => {
+                    const balance = getCustomerBalance(c.id).toFixed(2);
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td><button class="action-btn edit-btn" onclick="editCustomer('${c.id}')">编辑</button><button class="action-btn delete-btn" onclick="deleteCustomer('${c.id}')">删除</button></td>
+                    <td>${c.name}</td><td>${c.phone || '-'}</td><td>${c.email || '-'}</td><td>${c.type}</td><td>${c.address || '-'}</td><td>${c.notes || '-'}</td><td>${balance}</td>`;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // ==================== 业务记录 ====================
+            function renderRecords() {
+                const tbody = document.getElementById('recordsBody');
+                if (!tbody) return;
+                let filtered = records.filter(r => {
+                    if (currentFilterCustomerId && r.customerId !== currentFilterCustomerId) return false;
+                    if (currentPaymentStatus === 'paid' && !r.paid) return false;
+                    if (currentPaymentStatus === 'unpaid' && r.paid) return false;
+                    if (currentInvoiceStatus === 'yes' && !r.invoiceIssued) return false;
+                    if (currentInvoiceStatus === 'no' && r.invoiceIssued) return false;
+                    if (currentStartDate && r.date < currentStartDate) return false;
+                    if (currentEndDate && r.date > currentEndDate) return false;
+                    return true;
+                });
+                filtered.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : (b.createdAt || '').localeCompare(a.createdAt || '')));
+                tbody.innerHTML = '';
+                if (filtered.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">暂无记录</td></tr>';
+                    calculateTotalAmount(filtered);
+                    return;
+                }
+                filtered.forEach(r => {
+                    const customer = customers.find(c => c.id === r.customerId);
+                    const name = customer ? customer.name : '未知';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td><button class="action-btn edit-btn" onclick="editRecord('${r.id}')">编辑</button><button class="action-btn delete-btn" onclick="deleteRecord('${r.id}')">删除</button></td>
+                    <td>${name}</td><td>${formatDate(r.date)}</td><td>${r.serviceType}</td><td>${r.quantity}</td><td>${r.unitPrice.toFixed(2)}</td><td>${r.amount.toFixed(2)}</td>
+                    <td><span class="${r.paid ? 'status-paid' : 'status-unpaid'}" onclick="togglePaymentStatus('${r.id}')">${r.paid ? '已付款' : '未付款'}</span></td>
+                    <td><span class="${r.invoiceIssued ? 'invoice-status-yes' : 'invoice-status-no'}" onclick="toggleInvoiceStatus('${r.id}')">${r.invoiceIssued ? '已开票' : '未开票'}</span></td>`;
+                    tbody.appendChild(row);
+                });
+                calculateTotalAmount(filtered);
+            }
+
+            window.togglePaymentStatus = function(id) {
+                const r = records.find(r => r.id === id);
+                if (r) { r.paid = !r.paid; saveDataToStorage(); renderRecords(); }
+            };
+            window.toggleInvoiceStatus = function(id) {
+                const r = records.find(r => r.id === id);
+                if (r) { r.invoiceIssued = !r.invoiceIssued; saveDataToStorage(); renderRecords(); }
+            };
+            window.deleteRecord = function(id) {
+                if (!confirm('确定删除这条记录？')) return;
+                records = records.filter(r => r.id !== id);
+                saveDataToStorage();
+                renderRecords();
+            };
+            window.editRecord = function(id) {
+                const r = records.find(r => r.id === id);
+                if (!r) return;
+                document.getElementById('batchDate').value = r.date;
+                document.getElementById('batchCustomerId').value = r.customerId;
+                const customer = customers.find(c => c.id === r.customerId);
+                document.getElementById('batchCustomerSelect').value = customer ? customer.name : '';
+                const container = document.getElementById('serviceTypeRows');
+                container.innerHTML = '';
+                const newRow = document.createElement('div');
+                newRow.className = 'service-type-row';
+                newRow.setAttribute('data-record-id', r.id);
+                newRow.innerHTML = `<div class="service-type-input-container"><select class="service-type-select" onchange="setDefaultPrice(this)"><option value="">请选择服务类型</option></select><input type="text" class="service-type-input" style="display:none;" oninput="setCustomPrice(this)"><button class="toggle-input-btn" onclick="toggleServiceTypeInput(this)">✏️</button><button class="add-service-btn" onclick="openServiceTypeModal()">+</button></div><input type="number" class="quantity" value="${r.quantity}" min="1" oninput="calculateAmount(this)"><input type="number" class="unit-price" value="${r.unitPrice}" min="0" step="0.01" oninput="calculateAmount(this)"><input type="number" class="amount" value="${r.amount}" readonly><button class="remove-btn" onclick="removeServiceTypeRow(this)">删除</button>`;
+                container.appendChild(newRow);
+                updateServiceTypeSelects();
+                const select = newRow.querySelector('.service-type-select');
+                const input = newRow.querySelector('.service-type-input');
+                if (serviceTypes.some(s => s.name === r.serviceType)) {
+                    select.value = r.serviceType;
+                } else {
+                    select.style.display = 'none';
+                    input.style.display = 'block';
+                    input.value = r.serviceType;
+                }
+            };
+
+            function addBatchRecords() {
+                const date = document.getElementById('batchDate').value;
+                let customerId = document.getElementById('batchCustomerId').value;
+                const customerNameInput = document.getElementById('batchCustomerSelect').value.trim();
+                if (!date) { alert('请选择日期'); return; }
+                if (!customerId && !customerNameInput) { alert('请选择客户'); return; }
+
+                // 如果customerId为'new'，表示需要新建客户，但此时应已通过迷你表单创建，若未创建则提示
+                if (customerId === 'new') {
+                    alert('请先完成新建客户操作');
+                    return;
+                }
+
+                const rows = document.querySelectorAll('#serviceTypeRows .service-type-row');
+                let editingId = null;
+                let editingRow = null;
+                for (let row of rows) {
+                    if (row.getAttribute('data-record-id')) {
+                        editingRow = row;
+                        editingId = row.getAttribute('data-record-id');
+                        break;
+                    }
+                }
+
+                if (editingId) {
+                    // 编辑单条记录
+                    const row = editingRow;
+                    const select = row.querySelector('.service-type-select');
+                    const input = row.querySelector('.service-type-input');
+                    const serviceType = select.style.display !== 'none' ? select.value : input.value;
+                    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+                    const unitPrice = parseFloat(row.querySelector('.unit-price').value) || 0;
+                    if (!serviceType || quantity <= 0 || unitPrice <= 0) { alert('请填写有效的服务信息'); return; }
+                    const amount = quantity * unitPrice;
+                    const record = records.find(r => r.id === editingId);
+                    if (record) {
+                        record.customerId = customerId;
+                        record.date = date;
+                        record.serviceType = serviceType;
+                        record.quantity = quantity;
+                        record.unitPrice = unitPrice;
+                        record.amount = amount;
+                    }
+                    saveDataToStorage();
+                    clearBatchForm();
+                    renderRecords();
+                    alert('记录已更新');
+                    return;
+                }
+
+                // 批量新增
+                const newRecords = [];
+                for (let row of rows) {
+                    const select = row.querySelector('.service-type-select');
+                    const input = row.querySelector('.service-type-input');
+                    const serviceType = select.style.display !== 'none' ? select.value : input.value;
+                    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+                    const unitPrice = parseFloat(row.querySelector('.unit-price').value) || 0;
+                    if (!serviceType || quantity <= 0 || unitPrice <= 0) continue;
+                    const amount = quantity * unitPrice;
+                    newRecords.push({
+                        id: generateId(),
+                        customerId: customerId,
+                        date: date,
+                        serviceType: serviceType,
+                        quantity: quantity,
+                        unitPrice: unitPrice,
+                        amount: amount,
+                        paid: false,
+                        invoiceIssued: false,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                if (newRecords.length === 0) { alert('请至少填写一行有效服务'); return; }
+                records.push(...newRecords);
+                saveDataToStorage();
+                clearBatchForm();
+                renderRecords();
+                alert('记录添加成功');
+            }
+
+            function clearBatchForm() {
+                document.getElementById('batchDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('batchCustomerSelect').value = '';
+                document.getElementById('batchCustomerId').value = '';
+                document.getElementById('newCustomerMiniForm').style.display = 'none';
+                pendingNewCustomerName = '';
+                const container = document.getElementById('serviceTypeRows');
+                container.innerHTML = '<div class="service-type-row"> <div class="service-type-input-container"><select class="service-type-select" onchange="setDefaultPrice(this)"><option value="">请选择服务类型</option></select><input type="text" class="service-type-input" style="display:none;" oninput="setCustomPrice(this)"><button class="toggle-input-btn" onclick="toggleServiceTypeInput(this)">✏️</button><button class="add-service-btn" onclick="openServiceTypeModal()">+</button></div><input type="number" class="quantity" placeholder="数量" min="1" oninput="calculateAmount(this)"><input type="number" class="unit-price" placeholder="单价" min="0" step="0.01" oninput="calculateAmount(this)"><input type="number" class="amount" placeholder="金额" readonly><button class="remove-btn" onclick="removeServiceTypeRow(this)">删除</button></div>';
+                updateServiceTypeSelects();
+                hideCustomerDetails();
+            }
+
+            window.filterRecords = function() {
+                currentFilterCustomerId = document.getElementById('customerFilter').value || null;
+                currentPaymentStatus = document.getElementById('paymentFilter').value || null;
+                currentInvoiceStatus = document.getElementById('invoiceFilter').value || null;
+                currentStartDate = document.getElementById('startDate').value || null;
+                currentEndDate = document.getElementById('endDate').value || null;
+                renderRecords();
+            };
+
+            window.resetFilter = function() {
+                document.getElementById('customerFilter').value = '';
+                document.getElementById('paymentFilter').value = '';
+                document.getElementById('invoiceFilter').value = '';
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                document.getElementById('customerFilterSearch').value = '';
+                currentFilterCustomerId = null;
+                currentPaymentStatus = null;
+                currentInvoiceStatus = null;
+                currentStartDate = null;
+                currentEndDate = null;
+                renderRecords();
+            };
+
+            function populateCustomerFilter() {
+                const select = document.getElementById('customerFilter');
+                if (!select) return;
+                const current = select.value;
+                select.innerHTML = '<option value="">显示所有客户</option>';
+                customers.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    select.appendChild(opt);
+                });
+                if (current) select.value = current;
+            }
+
+            window.filterCustomersBySearch = function() {
+                const term = document.getElementById('customerFilterSearch').value.toLowerCase();
+                const select = document.getElementById('customerFilter');
+                select.innerHTML = '<option value="">显示所有客户</option>';
+                customers.forEach(c => {
+                    if (c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term)) || (c.email && c.email.includes(term))) {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.name;
+                        select.appendChild(opt);
+                    }
+                });
+                filterRecords();
+            };
+
+            // 客户搜索下拉（批量记录）
+            window.filterCustomersForBatch = function() {
+                const search = document.getElementById('batchCustomerSelect').value.toLowerCase();
+                const dropdown = document.getElementById('customerSelectDropdown');
+                currentSelectResults = customers.filter(c => c.name.toLowerCase().includes(search) || (c.phone && c.phone.includes(search)) || (c.email && c.email.includes(search)));
+                if (search.trim() !== '') {
+                    currentSelectResults.push({ id: 'new', name: `+ 新建客户: ${search}`, isNew: true, rawName: search });
+                }
+                dropdown.innerHTML = '';
+                currentSelectIndex = -1;
+                if (currentSelectResults.length > 0) {
+                    currentSelectResults.forEach((c, idx) => {
+                        const div = document.createElement('div');
+                        div.className = `customer-select-option ${c.isNew ? 'new' : ''}`;
+                        div.textContent = c.name;
+                        div.dataset.id = c.id;
+                        div.addEventListener('click', () => selectCustomerForBatch(c));
+                        dropdown.appendChild(div);
+                    });
+                    dropdown.style.display = 'block';
+                } else dropdown.style.display = 'none';
+            };
+
+            function selectCustomerForBatch(c) {
+                const input = document.getElementById('batchCustomerSelect');
+                const hidden = document.getElementById('batchCustomerId');
+                if (c.id === 'new') {
+                    pendingNewCustomerName = c.rawName || c.name.replace('+ 新建客户: ', '');
+                    input.value = pendingNewCustomerName;
+                    hidden.value = 'new';
+                    // 显示新建客户迷你表单
+                    document.getElementById('newCustomerMiniForm').style.display = 'block';
+                    document.getElementById('newMiniName').value = pendingNewCustomerName;
+                } else {
+                    input.value = c.name;
+                    hidden.value = c.id;
+                    document.getElementById('newCustomerMiniForm').style.display = 'none';
+                    showCustomerDetails(c.id);
+                }
+                hideSelectDropdown();
+            }
+
+            function confirmNewCustomerFromMini() {
+                const name = document.getElementById('newMiniName').value.trim();
+                if (!name) { alert('姓名必填'); return; }
+                const phone = document.getElementById('newMiniPhone').value.trim();
+                const email = document.getElementById('newMiniEmail').value.trim();
+                const type = document.getElementById('newMiniType').value;
+                const newId = generateId();
+                customers.push({ id: newId, name, phone, email, type, address: '', notes: '', balance: 0 });
+                saveDataToStorage();
+                // 更新隐藏域
+                document.getElementById('batchCustomerId').value = newId;
+                document.getElementById('batchCustomerSelect').value = name;
+                document.getElementById('newCustomerMiniForm').style.display = 'none';
+                renderCustomers();
+                populateCustomerFilter();
+                showCustomerDetails(newId);
+                alert('客户创建成功');
+            }
+
+            function cancelNewCustomerMini() {
+                document.getElementById('newCustomerMiniForm').style.display = 'none';
+                document.getElementById('batchCustomerSelect').value = '';
+                document.getElementById('batchCustomerId').value = '';
+            }
+
+            function handleBatchKeydown(e) {
+                if (e.key === 'ArrowDown') { e.preventDefault(); navigateSelectResults(1); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); navigateSelectResults(-1); }
+                else if (e.key === 'Enter') { e.preventDefault(); selectCurrentSelectResult(); }
+                else if (e.key === 'Escape') { hideSelectDropdown(); }
+                else { filterCustomersForBatch(); }  // 其他按键也会触发搜索
+            }
+
+            function navigateSelectResults(d) {
+                if (currentSelectResults.length === 0) return;
+                currentSelectIndex = (currentSelectIndex + d + currentSelectResults.length) % currentSelectResults.length;
+                const dropdown = document.getElementById('customerSelectDropdown');
+                dropdown.querySelectorAll('.customer-select-option').forEach((opt, idx) => {
+                    if (idx === currentSelectIndex) opt.classList.add('selected');
+                    else opt.classList.remove('selected');
+                });
+            }
+            function selectCurrentSelectResult() {
+                if (currentSelectIndex >= 0 && currentSelectIndex < currentSelectResults.length) {
+                    selectCustomerForBatch(currentSelectResults[currentSelectIndex]);
+                }
+            }
+            function hideSelectDropdown() {
+                document.getElementById('customerSelectDropdown').style.display = 'none';
+            }
+
+            function showCustomerDetails(id) {
+                const c = customers.find(c => c.id === id);
+                if (!c) return;
+                document.getElementById('displayCustomerName').textContent = c.name;
+                document.getElementById('displayCustomerPhone').textContent = c.phone || '-';
+                document.getElementById('displayCustomerEmail').textContent = c.email || '-';
+                document.getElementById('displayCustomerType').textContent = c.type || '-';
+                document.getElementById('displayCustomerAddress').textContent = c.address || '-';
+                document.getElementById('displayCustomerNotes').textContent = c.notes || '-';
+                document.getElementById('selectedCustomerInfo').style.display = 'block';
+                currentEditingCustomerId = id;
+            }
+            function hideCustomerDetails() { document.getElementById('selectedCustomerInfo').style.display = 'none'; }
+
+            window.editCustomerDetails = function() {
+                const c = customers.find(c => c.id === currentEditingCustomerId);
+                if (!c) return;
+                document.getElementById('editCustomerName').value = c.name;
+                document.getElementById('editCustomerPhone').value = c.phone || '';
+                document.getElementById('editCustomerEmail').value = c.email || '';
+                document.getElementById('editCustomerType').value = c.type || '个人';
+                document.getElementById('editCustomerAddress').value = c.address || '';
+                document.getElementById('editCustomerNotes').value = c.notes || '';
+                document.querySelectorAll('#selectedCustomerInfo .info-value').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('#selectedCustomerInfo .edit-info-input').forEach(el => el.style.display = 'block');
+                document.getElementById('customerViewButtons').style.display = 'none';
+                document.getElementById('customerEditButtons').style.display = 'flex';
+            };
+            window.saveEditedCustomer = function() {
+                const c = customers.find(c => c.id === currentEditingCustomerId);
+                if (!c) return;
+                c.name = document.getElementById('editCustomerName').value.trim();
+                c.phone = document.getElementById('editCustomerPhone').value.trim();
+                c.email = document.getElementById('editCustomerEmail').value.trim();
+                c.type = document.getElementById('editCustomerType').value;
+                c.address = document.getElementById('editCustomerAddress').value.trim();
+                c.notes = document.getElementById('editCustomerNotes').value.trim();
+                saveDataToStorage();
+                renderCustomers();
+                showCustomerDetails(currentEditingCustomerId);
+                document.querySelectorAll('#selectedCustomerInfo .info-value').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('#selectedCustomerInfo .edit-info-input').forEach(el => el.style.display = 'none');
+                document.getElementById('customerEditButtons').style.display = 'none';
+                document.getElementById('customerViewButtons').style.display = 'flex';
+            };
+            window.cancelEditCustomer = function() {
+                document.querySelectorAll('#selectedCustomerInfo .info-value').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('#selectedCustomerInfo .edit-info-input').forEach(el => el.style.display = 'none');
+                document.getElementById('customerEditButtons').style.display = 'none';
+                document.getElementById('customerViewButtons').style.display = 'flex';
+            };
+
+            // ==================== 服务类型管理 ====================
+            function renderServiceTypesModal() {
+                const list = document.getElementById('serviceTypeListModal');
+                if (!list) return;
+                list.innerHTML = '';
+                serviceTypes.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = 'service-type-item';
+                    div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee;';
+                    div.innerHTML = `<span>${s.name} (${s.price}元)</span> <button class="btn btn-danger btn-sm" onclick="deleteServiceType('${s.name}')">删除</button>`;
+                    list.appendChild(div);
+                });
+            }
+            window.addServiceTypeFromModal = function() {
+                const name = document.getElementById('newServiceNameModal').value.trim();
+                const price = parseFloat(document.getElementById('newServicePriceModal').value);
+                if (!name) { alert('请输入名称'); return; }
+                if (isNaN(price) || price < 0) { alert('请输入有效价格'); return; }
+                serviceTypes.push({ name, price });
+                saveDataToStorage();
+                renderServiceTypesModal();
+                updateServiceTypeSelects();
+                document.getElementById('newServiceNameModal').value = '';
+                document.getElementById('newServicePriceModal').value = '';
+            };
+            window.deleteServiceType = function(name) {
+                if (!confirm('删除服务类型？')) return;
+                serviceTypes = serviceTypes.filter(s => s.name !== name);
+                saveDataToStorage();
+                renderServiceTypesModal();
+                updateServiceTypeSelects();
+            };
+            window.openServiceTypeModal = function() {
+                renderServiceTypesModal();
+                document.getElementById('serviceTypeModal').style.display = 'block';
+            };
+            window.closeServiceTypeModal = function() {
+                document.getElementById('serviceTypeModal').style.display = 'none';
+            };
+
+            function updateServiceTypeSelects() {
+                const selects = document.querySelectorAll('#serviceTypeRows .service-type-select, #rechargeServiceTypeRows .service-type-select');
+                selects.forEach(select => {
+                    const selected = select.value;
+                    select.innerHTML = '<option value="">请选择服务类型</option>';
+                    serviceTypes.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.name;
+                        opt.textContent = s.name;
+                        if (s.name === selected) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                });
+            }
+
+            window.setDefaultPrice = function(select) {
+                const row = select.closest('.service-type-row');
+                const price = row.querySelector('.unit-price');
+                const service = serviceTypes.find(s => s.name === select.value);
+                if (service) price.value = service.price;
+                calculateAmount(price);
+            };
+            window.setCustomPrice = function(input) { calculateAmount(input); };
+            window.calculateAmount = function(el) {
+                const row = el.closest('.service-type-row');
+                const q = parseFloat(row.querySelector('.quantity').value) || 0;
+                const p = parseFloat(row.querySelector('.unit-price').value) || 0;
+                row.querySelector('.amount').value = (q * p).toFixed(2);
+            };
+            window.addServiceTypeRow = function() {
+                const container = document.getElementById('serviceTypeRows');
+                const newRow = container.children[0].cloneNode(true);
+                newRow.removeAttribute('data-record-id');
+                newRow.querySelectorAll('input').forEach(i => i.value = '');
+                newRow.querySelector('.service-type-select').value = '';
+                container.appendChild(newRow);
+                updateServiceTypeSelects();
+            };
+            window.removeServiceTypeRow = function(btn, type = 'normal') {
+                const container = type === 'recharge' ? document.getElementById('rechargeServiceTypeRows') : document.getElementById('serviceTypeRows');
+                if (container.children.length > 1) btn.closest('.service-type-row').remove();
+                else alert('至少保留一行');
+            };
+            window.toggleServiceTypeInput = function(btn) {
+                const container = btn.closest('.service-type-input-container');
+                const select = container.querySelector('.service-type-select');
+                const input = container.querySelector('.service-type-input');
+                if (select.style.display !== 'none') {
+                    select.style.display = 'none';
+                    input.style.display = 'block';
+                    input.value = select.value;
+                    btn.textContent = '📋';
+                } else {
+                    select.style.display = 'block';
+                    input.style.display = 'none';
+                    btn.textContent = '✏️';
+                }
+            };
+
+            // ==================== 充值相关 ====================
+            function updateRechargeCustomerSelect() {
+                document.getElementById('rechargeCustomerSelect').value = '';
+                document.getElementById('rechargeCustomerId').value = '';
+                document.getElementById('balanceDisplayCard').style.display = 'none';
+                document.getElementById('rechargeSpendForm').style.display = 'none';
+                document.getElementById('rechargeCustomerDetails').style.display = 'none';
+                document.getElementById('rechargeStats').style.display = 'none';
+                currentRechargeCustomerId = null;
+                // 清空历史表格
+                document.getElementById('spendHistoryBody').innerHTML = '<tr><td colspan="8">请选择客户</td></tr>';
+                document.getElementById('rechargeHistoryBody').innerHTML = '<tr><td colspan="5">请选择客户</td></tr>';
+                document.getElementById('allHistoryBody').innerHTML = '<tr><td colspan="6">请选择客户</td></tr>';
+            }
+
+            window.filterRechargeCustomers = function(term) {
+                const dropdown = document.getElementById('rechargeCustomerSelectDropdown');
+                if (!term.trim()) rechargeSearchResults = [...customers];
+                else {
+                    const t = term.toLowerCase();
+                    rechargeSearchResults = customers.filter(c => c.name.toLowerCase().includes(t) || (c.phone && c.phone.includes(t)) || (c.email && c.email.includes(t)));
+                }
+                dropdown.innerHTML = '';
+                rechargeSearchResults.forEach((c, i) => {
+                    const div = document.createElement('div');
+                    div.className = 'customer-select-option';
+                    div.textContent = c.name;
+                    div.dataset.id = c.id;
+                    div.addEventListener('click', () => selectRechargeCustomerForInput(c));
+                    dropdown.appendChild(div);
+                });
+                dropdown.style.display = rechargeSearchResults.length ? 'block' : 'none';
+            };
+
+            function selectRechargeCustomerForInput(c) {
+                document.getElementById('rechargeCustomerSelect').value = c.name;
+                document.getElementById('rechargeCustomerId').value = c.id;
+                hideRechargeSelectDropdown();
+                selectRechargeCustomer(c.id);
+            }
+
+            function selectRechargeCustomer(id) {
+                const c = customers.find(c => c.id === id);
+                if (!c) return;
+                currentRechargeCustomerId = id;
+                document.getElementById('balanceDisplayCard').style.display = 'block';
+                document.getElementById('rechargeSpendForm').style.display = 'block';
+                document.getElementById('rechargeCustomerDetails').style.display = 'block';
+                document.getElementById('rechargeStats').style.display = 'flex';
+                updateBalanceDisplay(id);
+                showRechargeCustomerDetails(id);
+                // 强制切换到消费记录标签 (修复4: 默认只显示消费记录)
+                switchTransactionTab('spend');
+            }
+
+            function showRechargeCustomerDetails(id) {
+                const c = customers.find(c => c.id === id);
+                if (!c) return;
+                document.getElementById('rechargeDisplayCustomerName').textContent = c.name || '-';
+                document.getElementById('rechargeDisplayCustomerPhone').textContent = c.phone || '-';
+                document.getElementById('rechargeDisplayCustomerEmail').textContent = c.email || '-';
+                document.getElementById('rechargeDisplayCustomerType').textContent = c.type || '-';
+                document.getElementById('rechargeDisplayCustomerAddress').textContent = c.address || '-';
+                document.getElementById('rechargeDisplayCustomerNotes').textContent = c.notes || '-';
+            }
+
+            function getCustomerBalance(cid) {
+                const recharges = rechargeRecords.filter(r => r.customerId === cid && r.type === 'recharge').reduce((s, r) => s + r.amount, 0);
+                const spends = rechargeRecords.filter(r => r.customerId === cid && r.type === 'spend').reduce((s, r) => s + r.amount, 0);
+                return recharges - spends;
+            }
+            function updateBalanceDisplay(id) {
+                document.getElementById('currentBalance').textContent = getCustomerBalance(id).toFixed(2);
+            }
+
+            function processRecharge() {
+                const cid = document.getElementById('rechargeCustomerId').value;
+                if (!cid) { alert('请选择客户'); return; }
+                const amount = parseFloat(document.getElementById('transactionAmount').value);
+                const notes = document.getElementById('transactionNotes').value.trim();
+                if (isNaN(amount) || amount <= 0) { alert('请输入有效金额'); return; }
+                const record = {
+                    id: generateId(),
+                    customerId: cid,
+                    type: 'recharge',
+                    amount: amount,
+                    date: new Date().toISOString().split('T')[0],
+                    notes: notes,
+                    createdAt: new Date().toISOString()
+                };
+                rechargeRecords.push(record);
+                saveDataToStorage();
+                updateBalanceDisplay(cid);
+                loadTransactionHistory(cid, document.querySelector('.transaction-tab.active').getAttribute('data-transaction-tab') || 'spend');
+                document.getElementById('transactionAmount').value = '';
+                document.getElementById('transactionNotes').value = '';
+                alert('充值成功');
+            }
+
+            function clearRechargeForm() {
+                document.getElementById('transactionAmount').value = '';
+                document.getElementById('transactionNotes').value = '';
+            }
+
+            window.addRechargeServiceTypeRow = function() {
+                const container = document.getElementById('rechargeServiceTypeRows');
+                const newRow = container.children[0].cloneNode(true);
+                newRow.querySelectorAll('input').forEach(i => i.value = '');
+                newRow.querySelector('.service-type-select').value = '';
+                container.appendChild(newRow);
+                updateServiceTypeSelects();
+            };
+
+            function processSpendFromBalance() {
+                const cid = document.getElementById('rechargeCustomerId').value;
+                if (!cid) { alert('请选择客户'); return; }
+                let date = document.getElementById('rechargeSpendDate').value;
+                if (!date) {
+                    date = new Date().toISOString().split('T')[0];
+                    document.getElementById('rechargeSpendDate').value = date;
+                }
+                const rows = document.querySelectorAll('#rechargeServiceTypeRows .service-type-row');
+                let total = 0;
+                const spendList = [];
+                for (let row of rows) {
+                    const select = row.querySelector('.service-type-select');
+                    const input = row.querySelector('.service-type-input');
+                    const serviceType = select.style.display !== 'none' ? select.value : input.value;
+                    const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+                    const unitPrice = parseFloat(row.querySelector('.unit-price').value) || 0;
+                    if (!serviceType || quantity <= 0 || unitPrice <= 0) continue;
+                    const amount = quantity * unitPrice;
+                    total += amount;
+                    spendList.push({
+                        id: generateId(),
+                        customerId: cid,
+                        type: 'spend',
+                        amount: amount,
+                        date: date,
+                        serviceType: serviceType,
+                        quantity: quantity,
+                        unitPrice: unitPrice,
+                        notes: `消费: ${serviceType} x${quantity}`,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                if (spendList.length === 0) { alert('请填写有效消费'); return; }
+                const balance = getCustomerBalance(cid);
+                if (total > balance) { alert(`余额不足，当前余额 ${balance.toFixed(2)}`); return; }
+                rechargeRecords.push(...spendList);
+                saveDataToStorage();
+                updateBalanceDisplay(cid);
+                loadTransactionHistory(cid, document.querySelector('.transaction-tab.active').getAttribute('data-transaction-tab') || 'spend');
+                clearRechargeSpendForm();
+                alert('消费成功');
+            }
+
+            function clearRechargeSpendForm() {
+                document.getElementById('rechargeSpendDate').value = new Date().toISOString().split('T')[0];
+                const container = document.getElementById('rechargeServiceTypeRows');
+                container.innerHTML = container.children[0].cloneNode(true).outerHTML;
+                const first = container.querySelector('.service-type-row');
+                first.querySelectorAll('input').forEach(i => i.value = '');
+                first.querySelector('.service-type-select').value = '';
+                updateServiceTypeSelects();
+            }
+
+            function loadTransactionHistory(cid, tab) {
+                const customer = customers.find(c => c.id === cid);
+                if (!customer) return;
+                const all = rechargeRecords.filter(r => r.customerId === cid);
+                const totalRecharged = all.filter(r => r.type === 'recharge').reduce((s, r) => s + r.amount, 0);
+                const totalSpent = all.filter(r => r.type === 'spend').reduce((s, r) => s + r.amount, 0);
+                document.getElementById('totalSpentDisplay').textContent = totalSpent.toFixed(2);
+                document.getElementById('currentBalanceDisplay').textContent = (totalRecharged - totalSpent).toFixed(2);
+
+                if (tab === 'spend') {
+                    const spends = all.filter(r => r.type === 'spend').sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const tbody = document.getElementById('spendHistoryBody');
+                    tbody.innerHTML = '';
+                    if (spends.length === 0) { tbody.innerHTML = '<tr><td colspan="8">暂无消费</td></tr>'; return; }
+                    // 按日期顺序计算余额
+                    const chronological = [...all.filter(r => r.type === 'spend')].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const balanceMap = new Map();
+                    let balance = totalRecharged;
+                    chronological.forEach(r => { balance -= r.amount; balanceMap.set(r.id, balance); });
+                    spends.forEach(r => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${customer.name}</td><td>${formatDate(r.date)}</td><td>${r.serviceType || '-'}</td><td>${r.quantity || 1}</td><td>${(r.unitPrice || r.amount).toFixed(2)}</td><td>${r.amount.toFixed(2)}</td><td>${balanceMap.get(r.id).toFixed(2)}</td><td><button class="action-btn delete-btn" onclick="deleteRechargeRecord('${r.id}')">删除</button></td>`;
+                        tbody.appendChild(row);
+                    });
+                } else if (tab === 'recharge') {
+                    const recharges = all.filter(r => r.type === 'recharge').sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const tbody = document.getElementById('rechargeHistoryBody');
+                    tbody.innerHTML = '';
+                    if (recharges.length === 0) { tbody.innerHTML = '<tr><td colspan="5">暂无充值</td></tr>'; return; }
+                    // 计算每笔充值后的余额（正向顺序）
+                    const chronological = [...recharges].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const balanceMap = new Map();
+                    let bal = 0;
+                    chronological.forEach(r => { bal += r.amount; balanceMap.set(r.id, bal); });
+                    recharges.forEach(r => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${formatDate(r.date)}</td><td>${r.amount.toFixed(2)}</td><td>${balanceMap.get(r.id).toFixed(2)}</td><td>${r.notes || '-'}</td><td><button class="action-btn delete-btn" onclick="deleteRechargeRecord('${r.id}')">删除</button></td>`;
+                        tbody.appendChild(row);
+                    });
+                } else if (tab === 'all') {
+                    const combined = [...all].sort((a, b) => new Date(b.date) - new Date(a.date)); // 倒序显示
+                    const tbody = document.getElementById('allHistoryBody');
+                    tbody.innerHTML = '';
+                    if (combined.length === 0) { tbody.innerHTML = '<tr><td colspan="6">暂无记录</td></tr>'; return; }
+                    // 正向顺序计算余额
+                    const chronological = [...all].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const balanceMap = new Map();
+                    let bal = 0;
+                    chronological.forEach(r => {
+                        if (r.type === 'recharge') bal += r.amount;
+                        else bal -= r.amount;
+                        balanceMap.set(r.id, bal);
+                    });
+                    combined.forEach(r => {
+                        const typeText = r.type === 'recharge' ? '充值' : '消费';
+                        const amountSpan = r.type === 'recharge' ? `<span style="color:green;">+${r.amount.toFixed(2)}</span>` : `<span style="color:red;">-${r.amount.toFixed(2)}</span>`;
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${formatDate(r.date)}</td><td>${typeText}</td><td>${amountSpan}</td><td>${balanceMap.get(r.id).toFixed(2)}</td><td>${r.notes || '-'}</td><td><button class="action-btn delete-btn" onclick="deleteRechargeRecord('${r.id}')">删除</button></td>`;
+                        tbody.appendChild(row);
+                    });
+                }
+            }
+
+            window.deleteRechargeRecord = function(id) {
+                if (!confirm('删除该记录？')) return;
+                rechargeRecords = rechargeRecords.filter(r => r.id !== id);
+                saveDataToStorage();
+                if (currentRechargeCustomerId) {
+                    updateBalanceDisplay(currentRechargeCustomerId);
+                    loadTransactionHistory(currentRechargeCustomerId, document.querySelector('.transaction-tab.active').getAttribute('data-transaction-tab') || 'spend');
+                }
+                renderCustomers();
+            };
+
+            window.showBalanceEdit = function() {
+                document.getElementById('balanceEditContainer').style.display = 'block';
+                if (currentRechargeCustomerId) {
+                    document.getElementById('balanceEditInput').value = getCustomerBalance(currentRechargeCustomerId).toFixed(2);
+                }
+            };
+            window.saveBalanceChange = function() {
+                const cid = currentRechargeCustomerId;
+                if (!cid) return;
+                const newBal = parseFloat(document.getElementById('balanceEditInput').value);
+                if (isNaN(newBal) || newBal < 0) { alert('请输入有效余额'); return; }
+                const current = getCustomerBalance(cid);
+                const diff = newBal - current;
+                if (diff === 0) { document.getElementById('balanceEditContainer').style.display = 'none'; return; }
+                const adj = {
+                    id: generateId(),
+                    customerId: cid,
+                    type: diff > 0 ? 'recharge' : 'spend',
+                    amount: Math.abs(diff),
+                    date: new Date().toISOString().split('T')[0],
+                    notes: `余额调整: ${diff > 0 ? '+' : '-'}${Math.abs(diff).toFixed(2)}`,
+                    createdAt: new Date().toISOString()
+                };
+                rechargeRecords.push(adj);
+                saveDataToStorage();
+                updateBalanceDisplay(cid);
+                loadTransactionHistory(cid, document.querySelector('.transaction-tab.active').getAttribute('data-transaction-tab') || 'spend');
+                document.getElementById('balanceEditContainer').style.display = 'none';
+            };
+            window.cancelBalanceChange = function() {
+                document.getElementById('balanceEditContainer').style.display = 'none';
+            };
+
+            function handleRechargeKeydown(e) {
+                if (e.key === 'ArrowDown') { e.preventDefault(); navigateRechargeSelectResults(1); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); navigateRechargeSelectResults(-1); }
+                else if (e.key === 'Enter') { e.preventDefault(); selectCurrentRechargeResult(); }
+                else if (e.key === 'Escape') { hideRechargeSelectDropdown(); }
+                else { filterRechargeCustomers(e.target.value); }
+            }
+            function navigateRechargeSelectResults(d) {
+                if (rechargeSearchResults.length === 0) return;
+                rechargeSelectedIndex = (rechargeSelectedIndex + d + rechargeSearchResults.length) % rechargeSearchResults.length;
+                const dropdown = document.getElementById('rechargeCustomerSelectDropdown');
+                dropdown.querySelectorAll('.customer-select-option').forEach((opt, idx) => {
+                    if (idx === rechargeSelectedIndex) opt.classList.add('selected');
+                    else opt.classList.remove('selected');
+                });
+            }
+            function selectCurrentRechargeResult() {
+                if (rechargeSelectedIndex >= 0 && rechargeSelectedIndex < rechargeSearchResults.length) {
+                    selectRechargeCustomerForInput(rechargeSearchResults[rechargeSelectedIndex]);
+                }
+            }
+            function hideRechargeSelectDropdown() {
+                document.getElementById('rechargeCustomerSelectDropdown').style.display = 'none';
+            }
+
+            // ==================== 通用工具 ====================
+            function setDefaultDate() {
+                const today = new Date().toISOString().split('T')[0];
+                if (document.getElementById('batchDate')) document.getElementById('batchDate').value = today;
+                if (document.getElementById('rechargeSpendDate')) document.getElementById('rechargeSpendDate').value = today;
+            }
+            function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
+            function formatDate(d) { const date = new Date(d); return date.getFullYear() + '-' + (date.getMonth()+1).toString().padStart(2,'0') + '-' + date.getDate().toString().padStart(2,'0'); }
+            function calculateTotalAmount(filtered) { 
+                const total = (filtered || records).reduce((s, r) => s + r.amount, 0);
+                document.getElementById('totalAmount').textContent = total.toFixed(2);
+            }
+
+            // ==================== 新增快速筛选函数 (1月,3月,半年,一年) ====================
+            window.quickFilter = function(months) {
+                const today = new Date();
+                const endDateStr = formatDate(today);
+                const startDate = new Date();
+                startDate.setMonth(startDate.getMonth() - months);
+                const startDateStr = formatDate(startDate);
+                document.getElementById('startDate').value = startDateStr;
+                document.getElementById('endDate').value = endDateStr;
+                filterRecords(); // 触发筛选
+            };
+
+            // ==================== 导入导出 ====================
+            function exportData() {
+                const data = { customers, records, serviceTypes, rechargeRecords };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '工作室数据.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+            function importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data.customers) customers = data.customers;
+                        if (data.records) records = data.records;
+                        if (data.serviceTypes) serviceTypes = data.serviceTypes;
+                        if (data.rechargeRecords) rechargeRecords = data.rechargeRecords;
+                        saveDataToStorage();
+                        renderAll();
+                    } catch (ex) { alert('文件格式错误'); }
+                };
+                reader.readAsText(file);
+            }
+
+            // 启动
+            window.onload = initApp;
+        })();
+    </script>
+</body>
+</html>
